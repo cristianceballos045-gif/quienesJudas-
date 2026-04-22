@@ -1,106 +1,31 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<title>Discípulos: El Traidor</title>
-
-<style>
-body {
-  background:#111;
-  color:white;
-  font-family: Arial;
-  text-align:center;
-}
-
-/* inputs */
-input, select, button {
-  margin:10px;
-  padding:10px;
-  border-radius:8px;
-  border:none;
-}
-
-/* cortina */
-#cortina {
-  position:fixed;
-  top:0;
-  left:0;
-  width:100%;
-  height:100%;
-  background:black;
-  display:none;
-  justify-content:center;
-  align-items:center;
-  flex-direction:column;
-  font-size:24px;
-}
-
-/* animación cortina */
-.abierta {
-  animation: abrir 0.6s forwards;
-}
-
-@keyframes abrir {
-  from {transform: scaleY(1);}
-  to {transform: scaleY(0);}
-}
-</style>
-</head>
-
-<body>
-
-<h1>Discípulos ✝️</h1>
-
-<h3>Selecciona Testamento</h3>
-<button onclick="testamento='antiguo'">Antiguo</button>
-<button onclick="testamento='nuevo'">Nuevo</button>
-
-<h3>Impostores (Judas)</h3>
-<select onchange="cantidadImpostores = parseInt(this.value)">
-  <option value="1">1</option>
-  <option value="2">2</option>
-  <option value="3">3</option>
-</select>
-
-<h3>Agregar Discípulos</h3>
-<input id="nombre" placeholder="Nombre del discípulo">
-<button onclick="agregar()">Agregar</button>
-
-<ul id="lista"></ul>
-
-<br>
-<button onclick="iniciar()">Iniciar Juego</button>
-
-<!-- CORTINA -->
-<div id="cortina">
-  <div id="texto"></div>
-  <button onclick="siguiente()">Siguiente</button>
-</div>
-
-<script>
-// listas
-const antiguo = ["Adán","Eva","Caín","Abel","Noé","Abraham","Isaac","Jacob","José",
+// LISTAS (puedes ampliar a 50 después)
+const antiguo = [
+"Adán","Eva","Caín","Abel","Noé","Abraham","Isaac","Jacob","José",
 "Moisés","Aarón","Josué","Caleb","Sansón","Samuel","Saúl","David",
 "Salomón","Elías","Eliseo","Isaías","Jeremías","Ezequiel","Daniel",
 "Job","Rut","Ester","Débora","Gedeón","Jefté","Esdras","Nehemías",
 "Miqueas","Oseas","Joel","Amós","Abdías","Jonás","Nahum","Habacuc",
 "Sofonías","Hageo","Zacarías","Malaquías","Lot","Labán","Rebeca",
-"Lea","Raquel","Balaam"];
-const nuevo = ["Jesús","María","José","Juan el Bautista","Pedro","Andrés","Santiago",
+"Lea","Raquel","Balaam"
+];
+
+const nuevo = [
+"Jesús","María","José","Juan el Bautista","Pedro","Andrés","Santiago",
 "Juan","Felipe","Bartolomé","Tomás","Mateo","Santiago el menor",
 "Simón el Zelote","Judas Tadeo","Judas Iscariote","Matías","Pablo",
 "Bernabé","Timoteo","Tito","Lucas","Marcos","María Magdalena",
 "Marta","Lázaro","Zaqueo","Nicodemo","José de Arimatea","Herodes",
 "Pilato","Caifás","Anás","Esteban","Felipe evangelista","Cornelio",
 "Priscila","Aquila","Apolos","Silas","Lidia","Febe","Onésimo",
-"Filemón","Gayo","Demas","Epafras","Epafrodito","Claudia","Longinos"];
-
-let testamento = "antiguo";
-let cantidadImpostores = 1;
+"Filemón","Gayo","Demas","Epafras","Epafrodito","Claudia","Longinos"
+];
 
 let jugadores = [];
 let roles = [];
 let turno = 0;
+
+let testamento = "antiguo";
+let cantidadImpostores = 1;
 
 // agregar jugador
 function agregar(){
@@ -120,15 +45,19 @@ function iniciar(){
     return;
   }
 
-  let base = testamento === "antiguo" ? antiguo : nuevo;
+  let base = testamento === "antiguo" ? [...antiguo] : [...nuevo];
 
-  // asignar roles
+  // mezclar personajes
+  base.sort(() => Math.random() - 0.5);
+
+  // crear estructura
   roles = jugadores.map(nombre => ({
     nombre,
-    rol: "Discípulo"
+    rol: "Discípulo",
+    personaje: null
   }));
 
-  // asignar Judas
+  // asignar impostores al azar
   let usados = [];
   while(usados.length < cantidadImpostores){
     let i = Math.floor(Math.random()*roles.length);
@@ -138,32 +67,53 @@ function iniciar(){
     }
   }
 
+  // asignar personajes SOLO a discípulos
+  let indexPersonaje = 0;
+
+  roles.forEach(r => {
+    if(r.rol === "Discípulo"){
+      r.personaje = base[indexPersonaje];
+      indexPersonaje++;
+    }
+  });
+
   turno = 0;
   mostrarCortina();
 }
 
 // mostrar cortina
 function mostrarCortina(){
-  let c = document.getElementById("cortina");
   let t = document.getElementById("texto");
 
-  c.style.display = "flex";
-  t.innerHTML = "Turno de: <br><b>"+roles[turno].nombre+"</b><br><br>Toca para ver tu rol";
+  document.getElementById("cortina").style.display = "flex";
+
+  t.innerHTML = `
+  Turno de: <br><b>${roles[turno].nombre}</b>
+  <br><br>Toca para ver tu rol
+  `;
+
+  t.dataset.mostrado = "false";
 }
 
-// siguiente (abrir cortina y luego pasar turno)
+// siguiente (revelar y avanzar)
 function siguiente(){
 
   let t = document.getElementById("texto");
+  let actual = roles[turno];
 
-  if(t.dataset.mostrado !== "true"){
-    // mostrar rol
-    t.innerHTML = roles[turno].rol;
+  if(t.dataset.mostrado === "false"){
+
+    if(actual.rol === "Judas 😈"){
+      t.innerHTML = "Judas 😈";
+    } else {
+      t.innerHTML = actual.personaje;
+    }
+
     t.dataset.mostrado = "true";
+
   } else {
-    // siguiente jugador
+
     turno++;
-    t.dataset.mostrado = "false";
 
     if(turno >= roles.length){
       document.getElementById("cortina").style.display = "none";
@@ -174,7 +124,3 @@ function siguiente(){
     mostrarCortina();
   }
 }
-</script>
-
-</body>
-</html>
