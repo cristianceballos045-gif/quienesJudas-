@@ -1,44 +1,163 @@
-// LISTAS (puedes ampliar a 50 después)
-const antiguo = [
-"Adán","Eva","Caín","Abel","Noé","Abraham","Isaac","Jacob","José",
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Discípulos: El Traidor</title>
+
+<style>
+body {
+  background:#111;
+  color:white;
+  font-family: Arial;
+  text-align:center;
+  max-width:400px;
+  margin:auto;
+}
+
+input, select, button {
+  margin:8px;
+  padding:12px;
+  border-radius:10px;
+  border:none;
+  width:90%;
+  font-size:16px;
+}
+
+.seleccionado {
+  background:green;
+  color:white;
+}
+
+#cortina, #votacion, #resultado {
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background:black;
+  display:none;
+  justify-content:center;
+  align-items:center;
+  flex-direction:column;
+  padding:20px;
+}
+
+.nombreBtn {
+  background:#333;
+  color:white;
+  margin:5px;
+  padding:10px;
+  border-radius:8px;
+  width:80%;
+}
+
+#resultado {
+  font-size:28px;
+  text-align:center;
+}
+</style>
+</head>
+
+<body>
+
+<h2>Discípulos ✝️</h2>
+
+<h3>Selecciona Testamento</h3>
+<button id="btnAntiguo" onclick="seleccionarTestamento('antiguo')">📖 Antiguo</button>
+<button id="btnNuevo" onclick="seleccionarTestamento('nuevo')">✝️ Nuevo</button>
+
+<h3>Impostores</h3>
+<select onchange="cantidadImpostores = parseInt(this.value)">
+  <option value="1">1</option>
+  <option value="2">2</option>
+  <option value="3">3</option>
+</select>
+
+<h3>Agregar jugadores</h3>
+<input id="nombre" placeholder="Nombre">
+<button onclick="agregar()">Agregar</button>
+
+<ul id="lista"></ul>
+
+<button onclick="iniciar()">Iniciar Juego</button>
+
+<!-- CORTINA -->
+<div id="cortina">
+  <div id="texto"></div>
+  <button onclick="siguiente()">Siguiente</button>
+</div>
+
+<!-- VOTACION -->
+<div id="votacion">
+  <h3>Votación</h3>
+  <div id="jugadoresVotar"></div>
+  <p id="contador"></p>
+</div>
+
+<!-- RESULTADO -->
+<div id="resultado">
+  <h2 id="resultadoTexto"></h2>
+  <button onclick="continuar()">Continuar</button>
+</div>
+
+<script>
+
+// LISTAS
+const antiguo = ["Adán","Eva","Caín","Abel","Noé","Abraham","Isaac","Jacob","José",
 "Moisés","Aarón","Josué","Caleb","Sansón","Samuel","Saúl","David",
 "Salomón","Elías","Eliseo","Isaías","Jeremías","Ezequiel","Daniel",
 "Job","Rut","Ester","Débora","Gedeón","Jefté","Esdras","Nehemías",
 "Miqueas","Oseas","Joel","Amós","Abdías","Jonás","Nahum","Habacuc",
 "Sofonías","Hageo","Zacarías","Malaquías","Lot","Labán","Rebeca",
-"Lea","Raquel","Balaam"
-];
-
-const nuevo = [
-"Jesús","María","José","Juan el Bautista","Pedro","Andrés","Santiago",
+"Lea","Raquel","Balaam"];
+const nuevo = ["Jesús","María","José","Juan el Bautista","Pedro","Andrés","Santiago",
 "Juan","Felipe","Bartolomé","Tomás","Mateo","Santiago el menor",
 "Simón el Zelote","Judas Tadeo","Judas Iscariote","Matías","Pablo",
 "Bernabé","Timoteo","Tito","Lucas","Marcos","María Magdalena",
 "Marta","Lázaro","Zaqueo","Nicodemo","José de Arimatea","Herodes",
 "Pilato","Caifás","Anás","Esteban","Felipe evangelista","Cornelio",
 "Priscila","Aquila","Apolos","Silas","Lidia","Febe","Onésimo",
-"Filemón","Gayo","Demas","Epafras","Epafrodito","Claudia","Longinos"
-];
+"Filemón","Gayo","Demas","Epafras","Epafrodito","Claudia","Longinos"];
 
 let jugadores = [];
 let roles = [];
 let turno = 0;
 
-let testamento = "antiguo";
+let testamento = null;
 let cantidadImpostores = 1;
+
+let votosRestantes = 10;
+let vivos = [];
+
+// seleccionar testamento
+function seleccionarTestamento(tipo){
+  testamento = tipo;
+
+  btnAntiguo.classList.remove("seleccionado");
+  btnNuevo.classList.remove("seleccionado");
+
+  if(tipo === "antiguo") btnAntiguo.classList.add("seleccionado");
+  else btnNuevo.classList.add("seleccionado");
+}
 
 // agregar jugador
 function agregar(){
-  let nombre = document.getElementById("nombre").value;
-  if(nombre){
-    jugadores.push(nombre);
-    document.getElementById("lista").innerHTML += "<li>"+nombre+"</li>";
-    document.getElementById("nombre").value = "";
+  let n = nombre.value;
+  if(n){
+    jugadores.push(n);
+    lista.innerHTML += "<li>"+n+"</li>";
+    nombre.value="";
   }
 }
 
 // iniciar juego
 function iniciar(){
+
+  if(!testamento){
+    alert("Selecciona testamento");
+    return;
+  }
 
   if(jugadores.length < 3){
     alert("Mínimo 3 jugadores");
@@ -47,80 +166,130 @@ function iniciar(){
 
   let base = testamento === "antiguo" ? [...antiguo] : [...nuevo];
 
-  // mezclar personajes
-  base.sort(() => Math.random() - 0.5);
+  let personajeComun = base[Math.floor(Math.random()*base.length)];
 
-  // crear estructura
-  roles = jugadores.map(nombre => ({
-    nombre,
-    rol: "Discípulo",
-    personaje: null
+  roles = jugadores.map(n => ({
+    nombre:n,
+    rol:"Discípulo",
+    personaje:personajeComun,
+    vivo:true
   }));
 
-  // asignar impostores al azar
+  // asignar Judas
   let usados = [];
   while(usados.length < cantidadImpostores){
     let i = Math.floor(Math.random()*roles.length);
     if(!usados.includes(i)){
-      roles[i].rol = "Judas 😈";
+      roles[i].rol="Judas";
+      roles[i].personaje=null;
       usados.push(i);
     }
   }
 
-  // asignar personajes SOLO a discípulos
-  let indexPersonaje = 0;
+  vivos = [...roles];
+  turno=0;
 
-  roles.forEach(r => {
-    if(r.rol === "Discípulo"){
-      r.personaje = base[indexPersonaje];
-      indexPersonaje++;
-    }
-  });
-
-  turno = 0;
   mostrarCortina();
 }
 
-// mostrar cortina
+// cortina
 function mostrarCortina(){
-  let t = document.getElementById("texto");
-
-  document.getElementById("cortina").style.display = "flex";
-
-  t.innerHTML = `
-  Turno de: <br><b>${roles[turno].nombre}</b>
-  <br><br>Toca para ver tu rol
+  cortina.style.display="flex";
+  texto.innerHTML = `
+  Turno de:<br><b>${roles[turno].nombre}</b>
+  <br><br>Ver rol
   `;
-
-  t.dataset.mostrado = "false";
+  texto.dataset.mostrado="false";
 }
 
-// siguiente (revelar y avanzar)
+// siguiente
 function siguiente(){
 
-  let t = document.getElementById("texto");
   let actual = roles[turno];
 
-  if(t.dataset.mostrado === "false"){
+  if(texto.dataset.mostrado==="false"){
 
-    if(actual.rol === "Judas 😈"){
-      t.innerHTML = "Judas 😈";
-    } else {
-      t.innerHTML = actual.personaje;
+    if(actual.rol==="Judas"){
+      texto.innerHTML="Judas 😈";
+    }else{
+      texto.innerHTML=actual.personaje;
     }
 
-    t.dataset.mostrado = "true";
+    texto.dataset.mostrado="true";
 
   } else {
 
     turno++;
 
-    if(turno >= roles.length){
-      document.getElementById("cortina").style.display = "none";
-      alert("Todos los roles fueron asignados");
+    if(turno>=roles.length){
+      cortina.style.display="none";
+      iniciarVotacion();
       return;
     }
 
     mostrarCortina();
   }
 }
+
+// iniciar votacion
+function iniciarVotacion(){
+  votacion.style.display="flex";
+  actualizarVotacion();
+}
+
+// actualizar lista
+function actualizarVotacion(){
+
+  jugadoresVotar.innerHTML="";
+  contador.innerText = "Votos restantes: " + votosRestantes;
+
+  vivos.forEach(j => {
+    if(j.vivo){
+      let btn = document.createElement("button");
+      btn.className="nombreBtn";
+      btn.innerText=j.nombre;
+      btn.onclick = () => votar(j);
+      jugadoresVotar.appendChild(btn);
+    }
+  });
+}
+
+// votar
+function votar(jugador){
+
+  if(votosRestantes <= 0) return;
+
+  votosRestantes--;
+
+  jugador.vivo=false;
+
+  votacion.style.display="none";
+  resultado.style.display="flex";
+
+  if(jugador.rol==="Judas"){
+    resultadoTexto.innerText = jugador.nombre + " ERA Judas 😈";
+  } else {
+    resultadoTexto.innerText = jugador.nombre + " NO era Judas";
+  }
+
+  vivos = vivos.filter(j => j.vivo);
+}
+
+// continuar
+function continuar(){
+
+  resultado.style.display="none";
+
+  if(votosRestantes <= 0){
+    alert("Fin de votaciones");
+    return;
+  }
+
+  votacion.style.display="flex";
+  actualizarVotacion();
+}
+
+</script>
+
+</body>
+</html>
