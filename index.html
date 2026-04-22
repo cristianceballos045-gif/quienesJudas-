@@ -29,7 +29,7 @@ input, select, button {
   color:white;
 }
 
-#cortina, #votacion, #resultado {
+#cortina, #votacion, #resultado, #ganador {
   position:fixed;
   top:0;
   left:0;
@@ -52,7 +52,19 @@ input, select, button {
   width:80%;
 }
 
-#resultado {
+li {
+  margin:5px;
+}
+
+li button {
+  width:auto;
+  padding:5px 10px;
+  margin-left:10px;
+  background:red;
+  color:white;
+}
+
+#resultado, #ganador {
   font-size:28px;
   text-align:center;
 }
@@ -101,29 +113,17 @@ input, select, button {
   <button onclick="continuar()">Continuar</button>
 </div>
 
+<!-- GANADOR -->
+<div id="ganador">
+  <h2 id="ganadorTexto"></h2>
+  <button onclick="location.reload()">Reiniciar</button>
+</div>
+
 <script>
 
-// LISTAS (50 y 50)
-const antiguo = [
-"Adán","Eva","Caín","Abel","Noé","Abraham","Isaac","Jacob","José",
-"Moisés","Aarón","Josué","Caleb","Sansón","Samuel","Saúl","David",
-"Salomón","Elías","Eliseo","Isaías","Jeremías","Ezequiel","Daniel",
-"Job","Rut","Ester","Débora","Gedeón","Jefté","Esdras","Nehemías",
-"Miqueas","Oseas","Joel","Amós","Abdías","Jonás","Nahum","Habacuc",
-"Sofonías","Hageo","Zacarías","Malaquías","Lot","Labán","Rebeca",
-"Lea","Raquel","Balaam"
-];
-
-const nuevo = [
-"Jesús","María","José","Juan el Bautista","Pedro","Andrés","Santiago",
-"Juan","Felipe","Bartolomé","Tomás","Mateo","Santiago el menor",
-"Simón el Zelote","Judas Tadeo","Matías","Pablo",
-"Bernabé","Timoteo","Tito","Lucas","Marcos","María Magdalena",
-"Marta","Lázaro","Zaqueo","Nicodemo","José de Arimatea","Herodes",
-"Pilato","Caifás","Anás","Esteban","Felipe evangelista","Cornelio",
-"Priscila","Aquila","Apolos","Silas","Lidia","Febe","Onésimo",
-"Filemón","Gayo","Demas","Epafras","Epafrodito","Claudia","Longinos"
-];
+// LISTAS
+const antiguo = ["Adán","Noé","Abraham","Moisés","David","Daniel"];
+const nuevo = ["Jesús","Pedro","Juan","Mateo","Tomás","Pablo"];
 
 let jugadores = [];
 let roles = [];
@@ -132,17 +132,15 @@ let turno = 0;
 let testamento = null;
 let cantidadImpostores = 1;
 
-let votosRestantes = 10;
+let votosRestantes = 0;
 let vivos = [];
 
 // seleccionar testamento
 function seleccionarTestamento(tipo){
   testamento = tipo;
-
   btnAntiguo.classList.remove("seleccionado");
   btnNuevo.classList.remove("seleccionado");
-
-  if(tipo === "antiguo") btnAntiguo.classList.add("seleccionado");
+  if(tipo==="antiguo") btnAntiguo.classList.add("seleccionado");
   else btnNuevo.classList.add("seleccionado");
 }
 
@@ -151,137 +149,149 @@ function agregar(){
   let n = nombre.value;
   if(n){
     jugadores.push(n);
-    lista.innerHTML += "<li>"+n+"</li>";
+    actualizarLista();
     nombre.value="";
   }
+}
+
+// actualizar lista
+function actualizarLista(){
+  lista.innerHTML="";
+  jugadores.forEach((j,i)=>{
+    let li=document.createElement("li");
+    li.innerHTML=`${j} <button onclick="eliminar(${i})">❌</button>`;
+    lista.appendChild(li);
+  });
+}
+
+// eliminar jugador
+function eliminar(i){
+  jugadores.splice(i,1);
+  actualizarLista();
 }
 
 // iniciar juego
 function iniciar(){
 
-  if(!testamento){
-    alert("Selecciona testamento");
-    return;
-  }
+  if(!testamento){ alert("Selecciona testamento"); return; }
+  if(jugadores.length<3){ alert("Mínimo 3 jugadores"); return; }
+  if(cantidadImpostores>=jugadores.length){ alert("Demasiados impostores"); return; }
 
-  if(jugadores.length < 3){
-    alert("Mínimo 3 jugadores");
-    return;
-  }
-
-  if(cantidadImpostores >= jugadores.length){
-    alert("Demasiados impostores");
-    return;
-  }
-
-  let base = testamento === "antiguo" ? [...antiguo] : [...nuevo];
-
+  let base = testamento==="antiguo" ? [...antiguo] : [...nuevo];
   let personajeComun = base[Math.floor(Math.random()*base.length)];
 
-  roles = jugadores.map(n => ({
+  roles = jugadores.map(n=>({
     nombre:n,
     rol:"Discípulo",
     personaje:personajeComun,
     vivo:true
   }));
 
-  // 🔥 ASIGNACIÓN 100% ALEATORIA DE JUDAS
-  let indices = roles.map((_, i) => i);
-  indices.sort(() => Math.random() - 0.5);
-  let seleccionados = indices.slice(0, cantidadImpostores);
+  let indices = roles.map((_,i)=>i);
+  indices.sort(()=>Math.random()-0.5);
+  let seleccionados = indices.slice(0,cantidadImpostores);
 
-  seleccionados.forEach(i => {
-    roles[i].rol = "Judas";
-    roles[i].personaje = null;
+  seleccionados.forEach(i=>{
+    roles[i].rol="Judas";
+    roles[i].personaje=null;
   });
 
-  vivos = [...roles];
-  turno=0;
+  vivos=[...roles];
 
+  // 🔥 votos proporcionales
+  votosRestantes = jugadores.length;
+
+  turno=0;
   mostrarCortina();
 }
 
 // cortina
 function mostrarCortina(){
   cortina.style.display="flex";
-  texto.innerHTML = `
-  Turno de:<br><b>${roles[turno].nombre}</b>
-  <br><br>Ver rol
-  `;
+  texto.innerHTML=`Turno de:<br><b>${roles[turno].nombre}</b><br><br>Ver rol`;
   texto.dataset.mostrado="false";
 }
 
 // siguiente
 function siguiente(){
-
-  let actual = roles[turno];
+  let actual=roles[turno];
 
   if(texto.dataset.mostrado==="false"){
-
-    if(actual.rol==="Judas"){
-      texto.innerHTML="Judas 😈";
-    }else{
-      texto.innerHTML=actual.personaje;
-    }
-
+    texto.innerHTML = actual.rol==="Judas" ? "Judas 😈" : actual.personaje;
     texto.dataset.mostrado="true";
-
   } else {
-
     turno++;
-
     if(turno>=roles.length){
       cortina.style.display="none";
       iniciarVotacion();
       return;
     }
-
     mostrarCortina();
   }
 }
 
-// iniciar votacion
+// iniciar votación
 function iniciarVotacion(){
   votacion.style.display="flex";
   actualizarVotacion();
 }
 
-// actualizar lista
+// actualizar votación
 function actualizarVotacion(){
-
   jugadoresVotar.innerHTML="";
-  contador.innerText = "Votos restantes: " + votosRestantes;
+  contador.innerText="Votos restantes: "+votosRestantes;
 
-  vivos.forEach(j => {
+  vivos.forEach(j=>{
     if(j.vivo){
-      let btn = document.createElement("button");
+      let btn=document.createElement("button");
       btn.className="nombreBtn";
       btn.innerText=j.nombre;
-      btn.onclick = () => votar(j);
+      btn.onclick=()=>votar(j);
       jugadoresVotar.appendChild(btn);
     }
   });
 }
 
 // votar
-function votar(jugador){
+function votar(j){
 
-  if(votosRestantes <= 0) return;
+  if(votosRestantes<=0) return;
 
   votosRestantes--;
-
-  jugador.vivo=false;
+  j.vivo=false;
 
   votacion.style.display="none";
   resultado.style.display="flex";
 
-  if(jugador.rol==="Judas"){
-    resultadoTexto.innerText = jugador.nombre + " ERA Judas 😈";
-  } else {
-    resultadoTexto.innerText = jugador.nombre + " NO era Judas";
-  }
+  resultadoTexto.innerText = j.rol==="Judas"
+    ? j.nombre+" ERA Judas 😈"
+    : j.nombre+" NO era Judas";
 
-  vivos = vivos.filter(j => j.vivo);
+  vivos = vivos.filter(x=>x.vivo);
+}
+
+// victoria discípulos
+function verificarVictoria(){
+  let judas = vivos.filter(j=>j.rol==="Judas").length;
+  if(judas===0){
+    ganadorTexto.innerText="🎉 Ganaron los discípulos";
+    ganador.style.display="flex";
+    return true;
+  }
+  return false;
+}
+
+// victoria judas
+function verificarVictoriaJudas(){
+  let judas = vivos.filter(j=>j.rol==="Judas").length;
+  let discipulos = vivos.filter(j=>j.rol==="Discípulo").length;
+
+  if(judas>=discipulos){
+    ganadorTexto.innerText="😈 Ganaron los Judas";
+    ganador.style.display="flex";
+    return true;
+  }
+  return false;
 }
 
 // continuar
@@ -289,7 +299,10 @@ function continuar(){
 
   resultado.style.display="none";
 
-  if(votosRestantes <= 0){
+  if(verificarVictoria()) return;
+  if(verificarVictoriaJudas()) return;
+
+  if(votosRestantes<=0){
     alert("Fin de votaciones");
     return;
   }
