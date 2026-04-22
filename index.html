@@ -103,22 +103,27 @@ input, select, button {
 
 <script>
 
-// LISTAS
-const antiguo = ["Adán","Eva","Caín","Abel","Noé","Abraham","Isaac","Jacob","José",
+// LISTAS (50 y 50)
+const antiguo = [
+"Adán","Eva","Caín","Abel","Noé","Abraham","Isaac","Jacob","José",
 "Moisés","Aarón","Josué","Caleb","Sansón","Samuel","Saúl","David",
 "Salomón","Elías","Eliseo","Isaías","Jeremías","Ezequiel","Daniel",
 "Job","Rut","Ester","Débora","Gedeón","Jefté","Esdras","Nehemías",
 "Miqueas","Oseas","Joel","Amós","Abdías","Jonás","Nahum","Habacuc",
 "Sofonías","Hageo","Zacarías","Malaquías","Lot","Labán","Rebeca",
-"Lea","Raquel","Balaam"];
-const nuevo = ["Jesús","María","José","Juan el Bautista","Pedro","Andrés","Santiago",
+"Lea","Raquel","Balaam"
+];
+
+const nuevo = [
+"Jesús","María","José","Juan el Bautista","Pedro","Andrés","Santiago",
 "Juan","Felipe","Bartolomé","Tomás","Mateo","Santiago el menor",
-"Simón el Zelote","Judas Tadeo","Judas Iscariote","Matías","Pablo",
+"Simón el Zelote","Judas Tadeo","Matías","Pablo",
 "Bernabé","Timoteo","Tito","Lucas","Marcos","María Magdalena",
 "Marta","Lázaro","Zaqueo","Nicodemo","José de Arimatea","Herodes",
 "Pilato","Caifás","Anás","Esteban","Felipe evangelista","Cornelio",
 "Priscila","Aquila","Apolos","Silas","Lidia","Febe","Onésimo",
-"Filemón","Gayo","Demas","Epafras","Epafrodito","Claudia","Longinos"];
+"Filemón","Gayo","Demas","Epafras","Epafrodito","Claudia","Longinos"
+];
 
 let jugadores = [];
 let roles = [];
@@ -164,6 +169,11 @@ function iniciar(){
     return;
   }
 
+  if(cantidadImpostores >= jugadores.length){
+    alert("Demasiados impostores");
+    return;
+  }
+
   let base = testamento === "antiguo" ? [...antiguo] : [...nuevo];
 
   let personajeComun = base[Math.floor(Math.random()*base.length)];
@@ -175,16 +185,15 @@ function iniciar(){
     vivo:true
   }));
 
-  // asignar Judas
-  let usados = [];
-  while(usados.length < cantidadImpostores){
-    let i = Math.floor(Math.random()*roles.length);
-    if(!usados.includes(i)){
-      roles[i].rol="Judas";
-      roles[i].personaje=null;
-      usados.push(i);
-    }
-  }
+  // 🔥 ASIGNACIÓN 100% ALEATORIA DE JUDAS
+  let indices = roles.map((_, i) => i);
+  indices.sort(() => Math.random() - 0.5);
+  let seleccionados = indices.slice(0, cantidadImpostores);
+
+  seleccionados.forEach(i => {
+    roles[i].rol = "Judas";
+    roles[i].personaje = null;
+  });
 
   vivos = [...roles];
   turno=0;
